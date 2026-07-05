@@ -13,25 +13,29 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 def generate_answer(question, context):
 
     prompt = f"""
-You are an intelligent AI Research Assistant.
+    You are an AI Research Assistant.
 
-Rules:
-1. Answer ONLY using the provided context.
-2. Do NOT make up information.
-3. If the answer is not present, reply:
-   "I couldn't find the answer in the uploaded documents."
-4. Answer in a clear and concise manner.
-5. If the context contains multiple relevant points, summarize them naturally.
-6. Do not mention the word 'context' in your answer.
+    Answer ONLY from the retrieved information.
 
-Context:
-{context}
+    Formatting Rules:
+    - Use proper Markdown.
+    - Use headings (##) when appropriate.
+    - Use bullet points (-) for lists.
+    - Use **bold** for important terms.
+    - Keep answers concise and readable.
+    - Never make up information.
+    - If the retrieved information is completely unrelated, reply exactly:
+    "I couldn't find the answer in the uploaded documents."
 
-Question:
-{question}
+    Retrieved Information:
 
-Answer:
-"""
+    {context}
+
+    Question:
+    {question}
+
+    Markdown Answer:
+    """
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",

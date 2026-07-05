@@ -1,15 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+
 import api from "../services/api";
+import toast from "react-hot-toast";
+
+import Navbar from "../components/Navbar";
+import UploadSection from "../components/UploadSection";
+import ChatInput from "../components/ChatInput";
+import ChatMessage from "../components/ChatMessage";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const Home = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [sources, setSources] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages, loading]);
 
   const uploadPDF = async () => {
     if (!selectedFile) {
-      alert("Please select a PDF first.");
+      toast.error("Please select a PDF.");
       return;
     }
 
@@ -19,109 +36,123 @@ const Home = () => {
     try {
       const response = await api.post("/upload", formData);
 
-      console.log(response.data);
+      toast.success(response.data.message);
 
-      alert(
-        `✅ Uploaded Successfully!\n\nPages: ${response.data.pages}\nChunks: ${response.data.chunks}`
-      );
+      setUploadedFiles((prev) => [
+        ...prev,
+        response.data.filename,
+      ]);
+
+      setSelectedFile(null);
     } catch (error) {
       console.error(error);
-
-      if (error.response) {
-        console.log(error.response.data);
-        alert(JSON.stringify(error.response.data));
-      } else {
-        alert(error.message);
-      }
+      toast.error("Upload failed.");
     }
   };
 
   const askQuestion = async () => {
     if (!question.trim()) {
-      alert("Please enter a question.");
+      toast.error("Please enter a question.");
       return;
     }
 
     try {
+      setLoading(true);
+
       const response = await api.post("/chat", {
-        question: question,
+        question,
       });
 
-      console.log(response.data);
+      setMessages((prev) => [
+        ...prev,
+        {
+          question,
+          answer: response.data.answer,
+          sources: response.data.sources,
+        },
+      ]);
 
-      setAnswer(response.data.answer);
-      setSources(response.data.sources);
+      setQuestion("");
     } catch (error) {
       console.error(error);
-      alert("Failed to get answer.");
+      toast.error("Failed to get answer.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        maxWidth: "900px",
-        margin: "50px auto",
-        padding: "20px",
-        fontFamily: "Arial",
-      }}
-    >
-      <h1>🤖 AI Research Assistant</h1>
+    <div className="min-h-screen bg-slate-950">
+      <Navbar />
 
-      <hr />
+      <div className="max-w-7xl mx-auto p-8">
 
-      <h2>Upload PDF</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-      <input
-        type="file"
-        accept=".pdf"
-        onChange={(e) => setSelectedFile(e.target.files[0])}
-      />
+          {/* Sidebar */}
 
-      <br />
-      <br />
+          <div className="lg:col-span-3">
 
-      <button onClick={uploadPDF}>Upload</button>
+            <UploadSection
+              selectedFile={selectedFile}
+              setSelectedFile={setSelectedFile}
+              uploadPDF={uploadPDF}
+              uploadedFiles={uploadedFiles}
+            />
 
-      <hr />
+          </div>
 
-      <h2>Ask Question</h2>
+          {/* Chat */}
 
-      <input
-        type="text"
-        placeholder="Ask anything..."
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        style={{
-          width: "100%",
-          padding: "10px",
-        }}
-      />
+          <div className="lg:col-span-9">
 
-      <br />
-      <br />
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl h-[78vh] flex flex-col">
 
-      <button onClick={askQuestion}>Ask</button>
+              {/* Messages */}
 
-      <hr />
+              <div className="flex-1 overflow-y-auto p-6">
 
-      <h2>Answer</h2>
+                {messages.length === 0 && !loading && (
+                  <div className="h-full flex items-center justify-center text-slate-500 text-lg">
+                    Start chatting with your PDFs 🚀
+                  </div>
+                )}
 
-      <p>{answer || "AI response will appear here..."}</p>
+                {messages.map((message, index) => (
+                  <ChatMessage
+                    key={index}
+                    message={message}
+                  />
+                ))}
 
-      {sources.length > 0 && (
-        <>
-          <h3>Sources</h3>
+                {loading && (
+                  <LoadingSpinner />
+                )}
 
-          <ul>
-            {sources.map((source, index) => (
-              <li key={index}>
-                📄 {source.filename} - Page {source.page}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+                <div ref={bottomRef} />
+
+              </div>
+
+              {/* Sticky Input */}
+
+              <div className="border-t border-slate-700 p-5">
+
+                <ChatInput
+                  question={question}
+                  setQuestion={setQuestion}
+                  askQuestion={askQuestion}
+                  loading={loading}
+                />
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
     </div>
   );
 };

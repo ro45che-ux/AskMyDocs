@@ -5,7 +5,7 @@ from app.embeddings.embedding_service import generate_embeddings
 from app.vectorstore.chroma_db import store_embeddings
 import os
 import shutil
-
+import uuid
 router = APIRouter()
 
 UPLOAD_DIRECTORY = "uploaded_pdfs"
@@ -17,7 +17,12 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 async def upload_pdf(file: UploadFile = File(...)):
 
     # Save uploaded PDF
-    file_path = os.path.join(UPLOAD_DIRECTORY, file.filename)
+    unique_filename = f"{uuid.uuid4()}_{file.filename}"
+
+    file_path = os.path.join(
+        UPLOAD_DIRECTORY,
+        unique_filename
+    )
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -38,10 +43,11 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     # Generate embeddings
     embeddings = generate_embeddings(chunks)
+
     store_embeddings(
         chunks,
         embeddings,
-        file.filename
+        unique_filename
     )
 
     print("Embeddings:", len(embeddings))

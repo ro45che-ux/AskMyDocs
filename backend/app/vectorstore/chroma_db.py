@@ -1,4 +1,5 @@
 import chromadb
+import uuid
 
 client = chromadb.PersistentClient(path="./chroma_db")
 
@@ -9,34 +10,29 @@ collection = client.get_or_create_collection(
 
 def store_embeddings(chunks, embeddings, filename):
 
-    ids = [str(i) for i in range(len(chunks))]
+    ids = [str(uuid.uuid4()) for _ in chunks]
 
     documents = [chunk.page_content for chunk in chunks]
 
     metadatas = []
 
+    original_filename = filename.split("_", 1)[1] if "_" in filename else filename
+
     for chunk in chunks:
         metadatas.append({
-            "filename": filename,
+            "filename": original_filename,
             "page": chunk.metadata.get("page", 0)
         })
-
-    embeddings = embeddings.tolist()
-
-    try:
-        collection.delete(ids=ids)
-    except:
-        pass
 
     collection.add(
         ids=ids,
         documents=documents,
-        embeddings=embeddings,
+        embeddings=embeddings.tolist(),
         metadatas=metadatas
     )
 
 
-def search_documents(query_embedding, top_k=3):
+def search_documents(query_embedding, top_k=5):
 
     results = collection.query(
         query_embeddings=[query_embedding.tolist()],

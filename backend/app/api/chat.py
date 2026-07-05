@@ -24,6 +24,15 @@ def chat(request: ChatRequest):
     context = "\n\n----------------------\n\n".join(
         results["documents"][0]
     )
+    print("\n" + "=" * 60)
+    print("QUESTION:", request.question)
+    print("=" * 60)
+
+    for i, doc in enumerate(results["documents"][0]):
+        print(f"\nChunk {i+1}:\n")
+        print(doc[:500])
+
+    print("=" * 60)
 
     answer = generate_answer(
         request.question,
