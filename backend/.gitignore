@@ -13,3 +13,11 @@ venv/
 
 # macOS
 .DS_Store
+
+backend/chroma_db/
+backend/uploaded_pdfs/
+backend/venv/
+backend/.env
+
+frontend/node_modules/
+frontend/.env
